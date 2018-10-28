@@ -16,18 +16,24 @@
 			android:text="@string/prefs_update_channel_label"
 			android:textAppearance="@android:style/TextAppearance.Material.Subhead"/>
 
-		<RadioButton
-			android:id="@+id/prefs_update_channel_stable"
+		<RadioGroup
+			android:id="@+id/prefs_update_channel_group"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			android:layout_marginTop="@dimen/prefs_padding_large"
-			android:text="@string/prefs_update_channel_stable"/>
+			android:layout_marginTop="@dimen/prefs_padding_large">
 
-		<RadioButton
-			android:id="@+id/prefs_update_channel_dev"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:text="@string/prefs_update_channel_dev"/>
+			<RadioButton
+				android:id="@+id/prefs_update_channel_stable"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:text="@string/prefs_update_channel_stable"/>
+
+			<RadioButton
+				android:id="@+id/prefs_update_channel_dev"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:text="@string/prefs_update_channel_dev"/>
+		</RadioGroup>
 
 		<TextView
 			android:layout_width="match_parent"

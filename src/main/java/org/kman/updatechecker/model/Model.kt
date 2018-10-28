@@ -50,7 +50,7 @@ object Model {
 		val uri = when (updateChannel) {
 			PrefsKeys.UPDATE_CHANNEL_STABLE -> VERSION_URL_STABLE
 			PrefsKeys.UPDATE_CHANNEL_DEV -> VERSION_URL_BETA
-			else -> VERSION_URL_STABLE
+			else -> VERSION_URL_BETA
 		}
 
 		val body = withTiming("Get version") {
@@ -181,7 +181,9 @@ object Model {
 
 		internal fun saveNewRetainedFileName() {
 			val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-			prefs.edit().putString(PrefsKeys.SAVED_FILE, saveFile.absolutePath).apply()
+			prefs.edit()
+					.putString(PrefsKeys.SAVED_FILE, saveFile.absolutePath)
+					.apply()
 		}
 
 		internal suspend fun saveHttpToFile(fileStream: OutputStream, result: Response): Boolean {

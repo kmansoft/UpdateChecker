@@ -6,8 +6,7 @@ import android.content.DialogInterface
 import android.os.Bundle
 import android.os.Message
 import android.preference.PreferenceManager
-import android.widget.CompoundButton
-import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.TextView
 import org.kman.updatechecker.model.PrefsKeys
@@ -39,27 +38,12 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 		// Update channel (stable / development)
 		val updateChannel = prefs.getInt(PrefsKeys.UPDATE_CHANNEL, PrefsKeys.UPDATE_CHANNEL_DEFAULT)
 
-		val radioUpdateChannelStable: RadioButton = findViewById(R.id.prefs_update_channel_stable)
-		val radioUpdateChannelDev: RadioButton = findViewById(R.id.prefs_update_channel_dev)
-
-		if (updateChannel == PrefsKeys.UPDATE_CHANNEL_STABLE) {
-			radioUpdateChannelStable.isChecked = true
-			radioUpdateChannelDev.isChecked = false
-		} else {
-			radioUpdateChannelStable.isChecked = false
-			radioUpdateChannelDev.isChecked = true
+		val radioUpdateChannel: RadioGroup = findViewById(R.id.prefs_update_channel_group)
+		when (updateChannel) {
+			PrefsKeys.UPDATE_CHANNEL_STABLE -> radioUpdateChannel.check(R.id.prefs_update_channel_stable)
+			PrefsKeys.UPDATE_CHANNEL_DEV -> radioUpdateChannel.check(R.id.prefs_update_channel_dev)
+			else -> radioUpdateChannel.check(R.id.prefs_update_channel_dev)
 		}
-
-		val radioUpdateChannelListener = CompoundButton.OnCheckedChangeListener { button, isChecked ->
-			if (isChecked) {
-				when (button) {
-					radioUpdateChannelDev -> radioUpdateChannelStable.isChecked = false
-					radioUpdateChannelStable -> radioUpdateChannelDev.isChecked = false
-				}
-			}
-		}
-		radioUpdateChannelStable.setOnCheckedChangeListener(radioUpdateChannelListener)
-		radioUpdateChannelDev.setOnCheckedChangeListener(radioUpdateChannelListener)
 
 		// Check interval
 
@@ -82,14 +66,14 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 		}
 
 		val checkIntervalListener = object : SeekBar.OnSeekBarChangeListener {
-			override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
+			override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
 				textCheckInterval.text = checkIntervalLabelList[progress]
 			}
 
-			override fun onStartTrackingTouch(bar: SeekBar?) {
+			override fun onStartTrackingTouch(seekBar: SeekBar?) {
 			}
 
-			override fun onStopTrackingTouch(bar: SeekBar?) {
+			override fun onStopTrackingTouch(seekBar: SeekBar?) {
 			}
 		}
 
@@ -105,12 +89,11 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 			val res = context.resources
 
 			// Update channel
-			val radioUpdateChannelStable: RadioButton = findViewById(R.id.prefs_update_channel_stable)
-			val radioUpdateChannelDev: RadioButton = findViewById(R.id.prefs_update_channel_dev)
+			val radioUpdateChannel: RadioGroup = findViewById(R.id.prefs_update_channel_group)
 
-			val updateChannel = when {
-				radioUpdateChannelStable.isChecked -> PrefsKeys.UPDATE_CHANNEL_STABLE
-				radioUpdateChannelDev.isChecked -> PrefsKeys.UPDATE_CHANNEL_DEV
+			val updateChannel = when (radioUpdateChannel.checkedRadioButtonId) {
+				R.id.prefs_update_channel_stable -> PrefsKeys.UPDATE_CHANNEL_STABLE
+				R.id.prefs_update_channel_dev -> PrefsKeys.UPDATE_CHANNEL_DEV
 				else -> PrefsKeys.UPDATE_CHANNEL_DEFAULT
 			}
 
@@ -131,5 +114,5 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 		}
 	}
 
-	internal var confirmMessage: Message? = confirmMessage
+	private var confirmMessage: Message? = confirmMessage
 }
