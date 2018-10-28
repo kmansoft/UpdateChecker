@@ -1,0 +1,16 @@
+*.apk
+*.iml
+*.orig
+
+.git.bak/
+.gradle/
+.idea/
+bin/
+build/
+gen/
+local.properties
+
+upload_release_build.sh
+build.release.gradle
+
+*.keystore

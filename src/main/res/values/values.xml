@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<dimen name="prefs_padding_large">8dp</dimen>
+	<dimen name="prefs_padding_small">8dp</dimen>
+
+	<integer-array name="prefs_check_interval_values">
+		<item>60</item>
+		<item>120</item>
+		<item>240</item>
+		<item>720</item>
+		<item>1440</item>
+	</integer-array>
+
+	<string-array name="prefs_check_interval_labels">
+		<item>@string/prefs_check_interval_label_1h</item>
+		<item>@string/prefs_check_interval_label_2h</item>
+		<item>@string/prefs_check_interval_label_4h</item>
+		<item>@string/prefs_check_interval_label_12h</item>
+		<item>@string/prefs_check_interval_label_1d</item>
+	</string-array>
+
+</resources>
