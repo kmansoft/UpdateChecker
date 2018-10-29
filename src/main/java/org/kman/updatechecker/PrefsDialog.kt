@@ -15,7 +15,6 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		val context = context
-		val res = context.resources
 		val inflater = layoutInflater
 
 		setCancelable(false)
@@ -39,19 +38,17 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 		val updateChannel = prefs.getInt(PrefsKeys.UPDATE_CHANNEL, PrefsKeys.UPDATE_CHANNEL_DEFAULT)
 
 		val radioUpdateChannel: RadioGroup = findViewById(R.id.prefs_update_channel_group)
-		when (updateChannel) {
-			PrefsKeys.UPDATE_CHANNEL_STABLE -> radioUpdateChannel.check(R.id.prefs_update_channel_stable)
-			PrefsKeys.UPDATE_CHANNEL_DEV -> radioUpdateChannel.check(R.id.prefs_update_channel_dev)
-			else -> radioUpdateChannel.check(R.id.prefs_update_channel_dev)
+		val radioUpdateChannelId = when (updateChannel) {
+			PrefsKeys.UPDATE_CHANNEL_STABLE -> R.id.prefs_update_channel_stable
+			PrefsKeys.UPDATE_CHANNEL_DEV -> R.id.prefs_update_channel_dev
+			else -> R.id.prefs_update_channel_dev
 		}
+		radioUpdateChannel.check(radioUpdateChannelId)
 
 		// Check interval
 
 		val seekCheckInterval: SeekBar = findViewById(R.id.prefs_check_interval_bar)
 		val textCheckInterval: TextView = findViewById(R.id.prefs_check_interval_value)
-
-		val checkIntervalValueList = res.getIntArray(R.array.prefs_check_interval_values)
-		val checkIntervalLabelList = res.getStringArray(R.array.prefs_check_interval_labels)
 
 		seekCheckInterval.max = checkIntervalValueList.size - 1
 
@@ -80,13 +77,14 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 		seekCheckInterval.setOnSeekBarChangeListener(checkIntervalListener)
 	}
 
+	override fun onBackPressed() {
+		cancel()
+	}
+
 	internal fun sendConfirmMessage() {
 		val msg = confirmMessage
 		if (msg != null) {
 			confirmMessage = null
-
-			val context = context
-			val res = context.resources
 
 			// Update channel
 			val radioUpdateChannel: RadioGroup = findViewById(R.id.prefs_update_channel_group)
@@ -98,7 +96,6 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 			}
 
 			// Check interval
-			val checkIntervalValueList = res.getIntArray(R.array.prefs_check_interval_values)
 			val seekCheckInterval: SeekBar = findViewById(R.id.prefs_check_interval_bar)
 
 			val checkInterval = checkIntervalValueList[seekCheckInterval.progress]
@@ -115,4 +112,11 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 	}
 
 	private var confirmMessage: Message? = confirmMessage
+
+	private val checkIntervalValueList by lazy {
+		context.resources.getIntArray(R.array.prefs_check_interval_values)
+	}
+	private val checkIntervalLabelList by lazy {
+		context.resources.getStringArray(R.array.prefs_check_interval_labels)
+	}
 }

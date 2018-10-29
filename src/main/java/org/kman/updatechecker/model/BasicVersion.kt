@@ -47,15 +47,23 @@ String?) {
 
 	companion object {
 		val NONE = BasicVersion(0, 0, 0, 0, null, null)
-		val REGEX_FULL = """(\d+)\.(\d+)\.(\d+)-(\d+)-([:alnum:]+)-([:alnum:]+)""".toRegex()
+		val REGEX_FULL_WITH_COMMIT = """(\d+)\.(\d+)\.(\d+)-(\d+)-([:alnum:]+)-([:alnum:]+)""".toRegex()
+		val REGEX_FULL_WITH_BUILD = """(\d+)\.(\d+)\.(\d+)-(\d+)""".toRegex()
 		val REGEX_SHORT = """(\d+)\.(\d+)\.(\d+)""".toRegex()
 
 		fun fromText(text: String): BasicVersion {
-			val matchFull = REGEX_FULL.matchEntire(text)
-			if (matchFull != null) {
-				val values = matchFull.groupValues
+			val matchFullWithCommit = REGEX_FULL_WITH_COMMIT.matchEntire(text)
+			if (matchFullWithCommit != null) {
+				val values = matchFullWithCommit.groupValues
 				return BasicVersion(values[1].toInt(), values[2].toInt(), values[3].toInt(), values[4].toInt(),
 						values[5], values[6])
+			}
+
+			val matchFullWithBuild = REGEX_FULL_WITH_BUILD.matchEntire(text)
+			if (matchFullWithBuild != null) {
+				val values = matchFullWithBuild.groupValues
+				return BasicVersion(values[1].toInt(), values[2].toInt(), values[3].toInt(), values[4].toInt(),
+						null, null)
 			}
 
 			val matchShort = REGEX_SHORT.matchEntire(text)
