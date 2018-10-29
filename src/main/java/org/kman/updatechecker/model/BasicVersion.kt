@@ -3,9 +3,9 @@ package org.kman.updatechecker.model
 class BasicVersion private constructor(val major: Int, val minor: Int, val patch: Int, val build: Int, val branch: String?, val commit:
 String?) {
 
-    override fun toString(): String {
-        return super.toString() + " - " + format()
-    }
+	override fun toString(): String {
+		return super.toString() + " - " + format()
+	}
 
 	fun format(): String {
 		if (branch != null && commit != null) {
@@ -52,23 +52,20 @@ String?) {
 		val REGEX_SHORT = """(\d+)\.(\d+)\.(\d+)""".toRegex()
 
 		fun fromText(text: String): BasicVersion {
-			val matchFullWithCommit = REGEX_FULL_WITH_COMMIT.matchEntire(text)
-			if (matchFullWithCommit != null) {
-				val values = matchFullWithCommit.groupValues
+			REGEX_FULL_WITH_COMMIT.matchEntire(text)?.apply {
+				val values = groupValues
 				return BasicVersion(values[1].toInt(), values[2].toInt(), values[3].toInt(), values[4].toInt(),
 						values[5], values[6])
 			}
 
-			val matchFullWithBuild = REGEX_FULL_WITH_BUILD.matchEntire(text)
-			if (matchFullWithBuild != null) {
-				val values = matchFullWithBuild.groupValues
+			REGEX_FULL_WITH_BUILD.matchEntire(text)?.apply {
+				val values = groupValues
 				return BasicVersion(values[1].toInt(), values[2].toInt(), values[3].toInt(), values[4].toInt(),
 						null, null)
 			}
 
-			val matchShort = REGEX_SHORT.matchEntire(text)
-			if (matchShort != null) {
-				val values = matchShort.groupValues
+			REGEX_SHORT.matchEntire(text)?.apply {
+				val values = groupValues
 				return BasicVersion(values[1].toInt(), values[2].toInt(), values[3].toInt(), 0, null, null)
 			}
 
