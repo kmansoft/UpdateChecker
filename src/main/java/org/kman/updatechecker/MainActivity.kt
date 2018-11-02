@@ -3,6 +3,7 @@ package org.kman.updatechecker
 import android.app.Activity
 import android.app.Dialog
 import android.app.ProgressDialog
+import android.content.BroadcastReceiver
 import android.content.Intent
 import android.net.Uri
 import android.os.*
@@ -46,6 +47,10 @@ class MainActivity : Activity() {
 			showDownloadProgress(task)
 		}
 
+		updateReceiver = Model.registerUpdateMonitorReceiver(this) {
+			checkJobStart()
+		}
+
 		startWork()
 	}
 
@@ -81,6 +86,11 @@ class MainActivity : Activity() {
 
 		downloadTask?.cancel()
 		downloadTask = null
+
+		updateReceiver?.also {
+			unregisterReceiver(it)
+		}
+		updateReceiver = null
 	}
 
 	override fun onRetainNonConfigurationInstance(): Any? {
@@ -170,7 +180,7 @@ class MainActivity : Activity() {
 		// Installed version
 		val verInstalled = try {
 			withContext(Dispatchers.IO) {
-				Model.getInstalledVersionSync(appContext)
+				Model.getInstalledVersion(appContext)
 			}
 		} catch (x: Throwable) {
 			MyLog.w(TAG, "Catch from get installed", x)
@@ -190,7 +200,7 @@ class MainActivity : Activity() {
 		// Available version
 		val verAvailable = try {
 			withContext(Dispatchers.IO) {
-				Model.getAvailableVersionSync(appContext)
+				Model.getAvailableVersion(appContext)
 			}
 		} catch (x: Throwable) {
 			MyLog.w(TAG, "Catch from get available", x)
@@ -222,7 +232,7 @@ class MainActivity : Activity() {
 
 			val valChangeLog = try {
 				withContext(Dispatchers.IO) {
-					Model.getChangeLogSync(appContext, verAvailable)
+					Model.getChangeLog(appContext, verAvailable)
 				}
 			} catch (x: Throwable) {
 				// ignore
@@ -237,6 +247,8 @@ class MainActivity : Activity() {
 		} else {
 			// No updates
 			textUpToDate.visibility = View.VISIBLE
+
+			CheckService.hideUpdateNotification(this)
 		}
 	}
 
@@ -326,4 +338,6 @@ class MainActivity : Activity() {
 
 	private var downloadTask: Model.ApkDownloadTask? = null
 	private var downloadDialog: ProgressDialog? = null
+
+	private var updateReceiver: BroadcastReceiver? = null
 }

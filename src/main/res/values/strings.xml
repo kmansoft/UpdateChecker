@@ -21,6 +21,7 @@
 	<string name="prefs_update_channel_label">Update channel</string>
 	<string name="prefs_update_channel_stable">Stable</string>
 	<string name="prefs_update_channel_dev">Development</string>
+	<string name="prefs_update_channel_both">Both</string>
 	<string name="prefs_check_interval_label">Check interval</string>
 
 	<string name="prefs_check_interval_label_1h">1 hour</string>

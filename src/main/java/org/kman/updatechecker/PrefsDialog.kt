@@ -41,6 +41,7 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 		val radioUpdateChannelId = when (updateChannel) {
 			PrefsKeys.UPDATE_CHANNEL_STABLE -> R.id.prefs_update_channel_stable
 			PrefsKeys.UPDATE_CHANNEL_DEV -> R.id.prefs_update_channel_dev
+			PrefsKeys.UPDATE_CHANNEL_BOTH -> R.id.prefs_update_channel_both
 			else -> R.id.prefs_update_channel_dev
 		}
 		radioUpdateChannel.check(radioUpdateChannelId)
@@ -92,6 +93,7 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 			val updateChannel = when (radioUpdateChannel.checkedRadioButtonId) {
 				R.id.prefs_update_channel_stable -> PrefsKeys.UPDATE_CHANNEL_STABLE
 				R.id.prefs_update_channel_dev -> PrefsKeys.UPDATE_CHANNEL_DEV
+				R.id.prefs_update_channel_both -> PrefsKeys.UPDATE_CHANNEL_BOTH
 				else -> PrefsKeys.UPDATE_CHANNEL_DEFAULT
 			}
 

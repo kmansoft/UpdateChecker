@@ -6,6 +6,7 @@ object PrefsKeys {
 	val UPDATE_CHANNEL = "updateChannel"
 	val UPDATE_CHANNEL_STABLE = 0
 	val UPDATE_CHANNEL_DEV = 1
+	val UPDATE_CHANNEL_BOTH = 2
 	val UPDATE_CHANNEL_DEFAULT = UPDATE_CHANNEL_DEV
 
 	val CHECK_INTERVAL_MINUTES = "checkInterval"

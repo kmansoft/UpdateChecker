@@ -73,6 +73,11 @@ class CheckService : JobService() {
 			}.build()
 			scheduler.schedule(info)
 		}
+
+		fun hideUpdateNotification(context: Context) {
+			val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+			nm.cancel(NOTIFICATION_ID)
+		}
 	}
 
 	override fun onStartJob(params: JobParameters?): Boolean {
@@ -133,8 +138,9 @@ class CheckService : JobService() {
 
 	private suspend fun checkJobImpl(appContext: Context) {
 		val verInstalled = withContext(Dispatchers.IO) {
-			Model.getInstalledVersionSync(appContext)
+			Model.getInstalledVersion(appContext)
 		}
+
 		MyLog.i(TAG, "Ver installed = %s", verInstalled)
 
 		if (verInstalled == BasicVersion.NONE) {
@@ -142,16 +148,19 @@ class CheckService : JobService() {
 		}
 
 		val verAvailable = withContext(Dispatchers.IO) {
-			Model.getAvailableVersionSync(appContext)
-		}
-		if (verAvailable == AvailableVersion.NONE) {
-			return
+			Model.getAvailableVersion(appContext)
 		}
 
 		MyLog.i(TAG, "Ver available = %s", verAvailable)
 
+		if (verAvailable == AvailableVersion.NONE) {
+			return
+		}
+
 		if (verAvailable.isNewerThan(verInstalled)) {
 			showUpdateNotification(verAvailable)
+		} else {
+			hideUpdateNotification()
 		}
 	}
 
@@ -175,9 +184,14 @@ class CheckService : JobService() {
 			setContentText(ver.format())
 			setContentIntent(pending)
 			setColor(res.getColor(R.color.colorPrimary))
+			setAutoCancel(true)
 		}.build()
 
 		nm.notify(NOTIFICATION_ID, notification)
+	}
+
+	private fun hideUpdateNotification() {
+		hideUpdateNotification(this)
 	}
 
 	private var checkJob: Job? = null

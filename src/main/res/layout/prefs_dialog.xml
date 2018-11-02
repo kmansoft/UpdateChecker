@@ -33,6 +33,12 @@
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
 				android:text="@string/prefs_update_channel_dev"/>
+
+			<RadioButton
+				android:id="@+id/prefs_update_channel_both"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:text="@string/prefs_update_channel_both"/>
 		</RadioGroup>
 
 		<TextView
