@@ -2,6 +2,12 @@ buildscript {
 
 	ext {
 		gradle_version = '3.2+'
+
+		def version = project.properties["ANDROID_GRADLE_TOOLS_VERSION"]
+		if (version) {
+			gradle_version = version.tokenize(':').last()
+		}
+
 		kotlin_version = '1.3.0+'
 		coroutines_version = '1.0.0+'
 		okhttp_version = '3.11+'
@@ -15,7 +21,6 @@ buildscript {
 		sdk_compile = 27
 
 	}
-
 	repositories {
 		google()
 		jcenter()
