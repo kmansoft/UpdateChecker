@@ -15,6 +15,10 @@
 		android:theme="@style/AppTheme"
 		tools:ignore="GoogleAppIndexingWarning">
 
+		<!-- Long screens -->
+
+		<meta-data android:name="android.max_aspect" android:value="2.5" />
+
 		<!-- Main activity -->
 
 		<activity
