@@ -19,3 +19,10 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+#-keep class kotlin.coroutines.CoroutineContext$Key
+#-keep class kotlin.coroutines.CoroutineContext
+#-keep class kotlin.jvm.functions.Function2
+
+-keep class kotlin.coroutines.**
+-keep class kotlin.jvm.functions.**
