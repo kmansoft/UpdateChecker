@@ -37,41 +37,47 @@ class CheckService : JobService() {
 			val now = System.currentTimeMillis()
 			val scheduler = context.getSystemService(android.content.Context.JOB_SCHEDULER_SERVICE) as JobScheduler
 
-			var existing: JobInfo? = null
-			for (job in scheduler.allPendingJobs) {
-				if (job.id == CheckService.PERIODIC_JOB_ID) {
-					existing = job
-					break
-				}
-			}
-
 			val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-			val minutes = prefs.getInt(PrefsKeys.CHECK_INTERVAL_MINUTES, PrefsKeys.CHECK_INTERVAL_MINUTES_DEFAULT)
-			val interval = TimeUnit.MINUTES.toMillis(minutes.toLong())
+			val enabled = prefs.getBoolean(PrefsKeys.CHECK_ENABLED, PrefsKeys.CHECK_ENABLED_DEFAULT)
 
-			if (existing != null) {
-				val extras = existing.extras
-				if (now - extras.getLong(KEY_SET_AT, 0) < RESET_PERIOD &&
-						existing.isPeriodic &&
-						existing.intervalMillis == interval) {
-					if (!BuildConfig.DEBUG) {
-						// Existing job still good, leave alone
-						return
+			if (enabled) {
+				// Checks are enabled
+				val existing = scheduler.allPendingJobs.find { jobInfo ->
+					jobInfo.id == PERIODIC_JOB_ID
+				}
+
+				val minutes = prefs.getInt(PrefsKeys.CHECK_INTERVAL_MINUTES, PrefsKeys.CHECK_INTERVAL_MINUTES_DEFAULT)
+				val interval = TimeUnit.MINUTES.toMillis(minutes.toLong())
+
+				if (existing != null) {
+					val extras = existing.extras
+					if (now - extras.getLong(KEY_SET_AT, 0) < RESET_PERIOD &&
+							existing.isPeriodic && existing.intervalMillis == interval) {
+						if (!BuildConfig.DEBUG) {
+							// Existing job still good, leave alone
+							return
+						}
 					}
 				}
+
+				val extras = PersistableBundle()
+				extras.putLong(KEY_SET_AT, now)
+
+				val builder = JobInfo.Builder(PERIODIC_JOB_ID, ComponentName(context, CheckService::class.java))
+				val info = builder.apply {
+					setPeriodic(interval)
+					setBackoffCriteria(BACKOFF_PERIOD, JobInfo.BACKOFF_POLICY_EXPONENTIAL)
+					setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+					setExtras(extras)
+				}.build()
+
+				scheduler.schedule(info)
+			} else {
+				// Checks are disabled
+				scheduler.cancel(PERIODIC_JOB_ID)
+
+				hideUpdateNotification(context)
 			}
-
-			val extras = PersistableBundle()
-			extras.putLong(KEY_SET_AT, now)
-
-			val builder = JobInfo.Builder(PERIODIC_JOB_ID, ComponentName(context, CheckService::class.java))
-			val info = builder.apply {
-				setPeriodic(interval)
-				setBackoffCriteria(BACKOFF_PERIOD, JobInfo.BACKOFF_POLICY_EXPONENTIAL)
-				setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-				setExtras(extras)
-			}.build()
-			scheduler.schedule(info)
 		}
 
 		fun hideUpdateNotification(context: Context) {
@@ -137,6 +143,13 @@ class CheckService : JobService() {
 	}
 
 	private suspend fun checkJobImpl(appContext: Context) {
+		val prefs = PreferenceManager.getDefaultSharedPreferences(appContext)
+		val enabled = prefs.getBoolean(PrefsKeys.CHECK_ENABLED, PrefsKeys.CHECK_ENABLED_DEFAULT)
+		if (!enabled) {
+			hideUpdateNotification()
+			return
+		}
+
 		val verInstalled = withContext(Dispatchers.IO) {
 			Model.getInstalledVersion(appContext)
 		}

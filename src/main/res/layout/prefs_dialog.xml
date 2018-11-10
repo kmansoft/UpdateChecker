@@ -41,12 +41,12 @@
 				android:text="@string/prefs_update_channel_both"/>
 		</RadioGroup>
 
-		<TextView
+		<CheckBox
+			android:id="@+id/prefs_check_enabled"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:layout_marginTop="@dimen/prefs_padding_large"
-			android:text="@string/prefs_check_interval_label"
-			android:textAppearance="@android:style/TextAppearance.Material.Subhead"/>
+			android:text="@string/prefs_check_enabled"/>
 
 		<SeekBar
 			android:id="@+id/prefs_check_interval_bar"
@@ -59,7 +59,6 @@
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:layout_marginTop="@dimen/prefs_padding_small"
-			android:text="1 hour"
 			android:textAppearance="@android:style/TextAppearance.Material"/>
 
 	</LinearLayout>

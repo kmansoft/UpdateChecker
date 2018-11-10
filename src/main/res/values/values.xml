@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<dimen name="prefs_padding_large">8dp</dimen>
+	<dimen name="prefs_padding_large">12dp</dimen>
 	<dimen name="prefs_padding_small">8dp</dimen>
 
 	<integer-array name="prefs_check_interval_values">

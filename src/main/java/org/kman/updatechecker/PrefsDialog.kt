@@ -6,9 +6,7 @@ import android.content.DialogInterface
 import android.os.Bundle
 import android.os.Message
 import android.preference.PreferenceManager
-import android.widget.RadioGroup
-import android.widget.SeekBar
-import android.widget.TextView
+import android.widget.*
 import org.kman.updatechecker.model.PrefsKeys
 
 class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(context) {
@@ -46,14 +44,26 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 		}
 		radioUpdateChannel.check(radioUpdateChannelId)
 
-		// Check interval
+		// Check enabled / interval
+
+		val checkCheckEnabled: CheckBox = findViewById(R.id.prefs_check_enabled)
 
 		val seekCheckInterval: SeekBar = findViewById(R.id.prefs_check_interval_bar)
 		val textCheckInterval: TextView = findViewById(R.id.prefs_check_interval_value)
 
+		val checkEnabled = prefs.getBoolean(PrefsKeys.CHECK_ENABLED, PrefsKeys.CHECK_ENABLED_DEFAULT)
+		val checkInterval = prefs.getInt(PrefsKeys.CHECK_INTERVAL_MINUTES, PrefsKeys.CHECK_INTERVAL_MINUTES_DEFAULT)
+
+		checkCheckEnabled.isChecked = checkEnabled
+
+		val checkEnabledListener = CompoundButton.OnCheckedChangeListener { buttonView, isChecked ->
+			seekCheckInterval.isEnabled = isChecked
+			textCheckInterval.isEnabled = isChecked
+		}
+		checkCheckEnabled.setOnCheckedChangeListener(checkEnabledListener)
+
 		seekCheckInterval.max = checkIntervalValueList.size - 1
 
-		val checkInterval = prefs.getInt(PrefsKeys.CHECK_INTERVAL_MINUTES, PrefsKeys.CHECK_INTERVAL_MINUTES_DEFAULT)
 		val checkIntervalIndex = checkIntervalValueList.indexOf(checkInterval)
 		if (checkIntervalIndex >= 0) {
 			seekCheckInterval.progress = checkIntervalIndex
@@ -97,15 +107,18 @@ class PrefsDialog(context: Context, confirmMessage: Message) : AlertDialog(conte
 				else -> PrefsKeys.UPDATE_CHANNEL_DEFAULT
 			}
 
-			// Check interval
-			val seekCheckInterval: SeekBar = findViewById(R.id.prefs_check_interval_bar)
+			// Check enabled / interval interval
+			val checkCheckEnabled: CheckBox = findViewById(R.id.prefs_check_enabled)
+			val checkEnabled = checkCheckEnabled.isChecked
 
+			val seekCheckInterval: SeekBar = findViewById(R.id.prefs_check_interval_bar)
 			val checkInterval = checkIntervalValueList[seekCheckInterval.progress]
 
 			// Save to prefs
 			val prefs = PreferenceManager.getDefaultSharedPreferences(context)
 			prefs.edit()
 					.putInt(PrefsKeys.UPDATE_CHANNEL, updateChannel)
+					.putBoolean(PrefsKeys.CHECK_ENABLED, checkEnabled)
 					.putInt(PrefsKeys.CHECK_INTERVAL_MINUTES, checkInterval)
 					.apply()
 
