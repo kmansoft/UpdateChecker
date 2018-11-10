@@ -1,0 +1,37 @@
+<resources>
+	<string name="app_name">Обновления Aqua Mail</string>
+
+	<string name="not_installed">Не установлена?</string>
+	<string name="no_available_version_info">Нет информации</string>
+	<string name="label_installed">Установлена</string>
+	<string name="label_web_site">Доступна</string>
+	<string name="label_changelog">Изменения</string>
+	<string name="label_download">Загрузить</string>
+
+	<string name="version_up_to_date">Уже обновлена!</string>
+
+	<string name="menu_refresh">Обновить</string>
+	<string name="menu_settings">Настройки</string>
+
+	<string name="notification_title">Новая версия</string>
+
+	<string name="download_title">Загрузка…</string>
+
+	<string name="prefs_title">Настойки</string>
+	<string name="prefs_update_channel_label">Вид обновлений</string>
+	<string name="prefs_update_channel_stable">Стабильный</string>
+	<string name="prefs_update_channel_dev">Разработка</string>
+	<string name="prefs_update_channel_both">Оба, что новее</string>
+
+	<string name="prefs_check_enabled">Проверять автоматически</string>
+	<string name="prefs_check_interval_label">Интервал</string>
+
+	<string name="prefs_check_interval_label_1h">1 час</string>
+	<string name="prefs_check_interval_label_2h">2 часа</string>
+	<string name="prefs_check_interval_label_4h">4 часа</string>
+	<string name="prefs_check_interval_label_12h">12 часов</string>
+	<string name="prefs_check_interval_label_1d">1 день</string>
+
+	<string name="ok">OK</string>
+	<string name="cancel">Отмена</string>
+</resources>
