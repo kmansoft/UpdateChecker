@@ -119,13 +119,13 @@ class MainActivity : Activity() {
 	}
 
 	override fun onCreateDialog(id: Int): Dialog {
-		when (id) {
+		return when (id) {
 			DIALOG_ID_SETTINGS -> {
 				val dialog = PrefsDialog(this, handler.obtainMessage(WHAT_CHANGE_SETTING))
 				dialog.setOnDismissListener { removeDialog(DIALOG_ID_SETTINGS) }
-				return dialog
+				dialog
 			}
-			else -> return super.onCreateDialog(id)
+			else -> super.onCreateDialog(id)
 		}
 	}
 
