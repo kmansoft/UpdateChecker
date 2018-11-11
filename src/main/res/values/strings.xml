@@ -34,4 +34,6 @@
 
 	<string name="ok">OK</string>
 	<string name="cancel">Cancel</string>
+
+	<string name="footer">Version %1$s</string>
 </resources>

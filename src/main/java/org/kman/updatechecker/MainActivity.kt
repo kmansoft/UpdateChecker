@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Intent
 import android.net.Uri
 import android.os.*
+import android.provider.Browser
 import android.text.format.DateUtils
 import android.transition.TransitionManager
 import android.util.Log
@@ -34,11 +35,19 @@ class MainActivity : Activity() {
 		val DIALOG_ID_SETTINGS = 1
 
 		val WHAT_CHANGE_SETTING = 1
+
+		val SOURCE_CODE_LINK = Uri.parse("https://github.com/kmansoft/UpdateChecker")
 	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_main)
+
+		val footerView: TextView = findViewById(R.id.footer)
+		footerView.text = getString(R.string.footer, BuildConfig.VERSION_NAME)
+		footerView.setOnClickListener {
+			startLink(SOURCE_CODE_LINK)
+		}
 
 		val lastObject = lastNonConfigurationInstance
 		if (lastObject is Model.ApkDownloadTask) {
@@ -126,6 +135,12 @@ class MainActivity : Activity() {
 			else -> return false
 		}
 		return true
+	}
+
+	private fun startLink(link: Uri) {
+		val intent = Intent(Intent.ACTION_VIEW, link)
+		intent.putExtra(Browser.EXTRA_APPLICATION_ID, BuildConfig.APPLICATION_ID)
+		startActivity(intent)
 	}
 
 	private fun checkJobStart() {

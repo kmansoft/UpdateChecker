@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <FrameLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:tools="http://schemas.android.com/tools"
@@ -12,68 +11,92 @@
 		android:layout_height="match_parent"
 		android:fillViewport="true">
 
-		<LinearLayout
-			android:id="@+id/version_container"
+		<RelativeLayout
 			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:orientation="vertical"
-			android:padding="16dp">
+			android:layout_height="wrap_content">
 
 			<TextView
-				android:id="@+id/version_installed_label"
+				android:id="@+id/footer"
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
-				android:text="@string/label_installed"
-				android:textAppearance="@android:style/TextAppearance.Material.Title"/>
+				android:layout_alignParentBottom="true"
+				android:background="?android:attr/selectableItemBackground"
+				android:paddingLeft="16dp"
+				android:paddingTop="8dp"
+				android:paddingRight="16dp"
+				android:paddingBottom="8dp"
+				android:textAppearance="@android:style/TextAppearance.Material.Caption"/>
 
-			<TextView
-				android:id="@+id/version_installed"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:textAppearance="@android:style/TextAppearance.Material.Subhead"/>
-
-			<TextView
-				android:id="@+id/version_web_site_label"
+			<LinearLayout
+				android:id="@+id/version_container"
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
-				android:layout_marginTop="16dp"
-				android:text="@string/label_web_site"
-				android:textAppearance="@android:style/TextAppearance.Material.Title"/>
+				android:layout_above="@id/footer"
+				android:layout_alignParentTop="true"
+				android:orientation="vertical"
+				android:paddingLeft="16dp"
+				android:paddingTop="16dp"
+				android:paddingRight="16dp"
+				android:paddingBottom="8dp">
 
-			<TextView
-				android:id="@+id/version_available"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:textAppearance="@android:style/TextAppearance.Material.Subhead"/>
+				<TextView
+					android:id="@+id/version_installed_label"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:text="@string/label_installed"
+					android:textAppearance="@android:style/TextAppearance.Material.Title"/>
 
-			<TextView
-				android:id="@+id/version_up_to_date"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_marginTop="8dp"
-				android:text="@string/version_up_to_date"
-				android:textAppearance="@android:style/TextAppearance.Material.Headline"
-				android:visibility="gone"/>
+				<TextView
+					android:id="@+id/version_installed"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:textAppearance="@android:style/TextAppearance.Material.Subhead"/>
 
-			<Button
-				android:id="@+id/button_download"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_marginTop="16dp"
-				android:backgroundTint="#9C27B0"
-				android:minWidth="220dp"
-				android:text="@string/label_download"
-				android:textColor="#FFFFFF"
-				android:visibility="invisible"/>
+				<TextView
+					android:id="@+id/version_web_site_label"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="16dp"
+					android:text="@string/label_web_site"
+					android:textAppearance="@android:style/TextAppearance.Material.Title"/>
 
-			<TextView
-				android:id="@+id/changes_web_site"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_marginTop="8dp"
-				android:textAppearance="@android:style/TextAppearance.Material.Body1"/>
+				<TextView
+					android:id="@+id/version_available"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:textAppearance="@android:style/TextAppearance.Material.Subhead"/>
 
-		</LinearLayout>
+				<TextView
+					android:id="@+id/version_up_to_date"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="8dp"
+					android:text="@string/version_up_to_date"
+					android:textAppearance="@android:style/TextAppearance.Material.Headline"
+					android:visibility="gone"/>
+
+				<Button
+					android:id="@+id/button_download"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="16dp"
+					android:backgroundTint="#9C27B0"
+					android:minWidth="220dp"
+					android:text="@string/label_download"
+					android:textColor="#FFFFFF"
+					android:visibility="invisible"/>
+
+				<TextView
+					android:id="@+id/changes_web_site"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="8dp"
+					android:textAppearance="@android:style/TextAppearance.Material.Body1"/>
+
+			</LinearLayout>
+
+		</RelativeLayout>
+
 	</ScrollView>
 
 	<ProgressBar
