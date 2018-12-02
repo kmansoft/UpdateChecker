@@ -15,7 +15,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.Response
 import okhttp3.ResponseBody
 import org.kman.updatechecker.util.MyLog
 import java.io.*
@@ -104,9 +103,8 @@ object Model {
         val body = withTiming("Get changes") {
             val uri = version.buildChangeLogUri(DOWNLOAD_BASE)
             val request = Request.Builder().url(uri.toString()).get().build()
-            val result = httpClient.newCall(request).execute()
 
-            checkHttpResult(result)
+            checkHttpResult(request)
         }
 
         val text = body.string()
@@ -171,8 +169,7 @@ object Model {
                 val request = Request.Builder().url(uri.toString()).get().build()
                 try {
                     BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
-                        val result = httpClient.newCall(request).execute()
-                        retainFile = saveHttpToFile(it, result)
+                        retainFile = saveHttpToFile(it, request)
                     }
                 } catch (x: Exception) {
                     channel.close(x)
@@ -217,8 +214,8 @@ object Model {
                     .apply()
         }
 
-        internal suspend fun saveHttpToFile(fileStream: OutputStream, result: Response): Boolean {
-            val body = checkHttpResult(result)
+        internal suspend fun saveHttpToFile(fileStream: OutputStream, request: Request): Boolean {
+            val body = checkHttpResult(request)
 
             body.byteStream().use {
                 var progress = 0
@@ -262,9 +259,8 @@ object Model {
     private fun getAvailableVersionImpl(context: Context, uri: Uri): AvailableVersion {
         val body = withTiming("Get version") {
             val request = Request.Builder().url(uri.toString()).get().build()
-            val result = httpClient.newCall(request).execute()
 
-            checkHttpResult(result)
+            checkHttpResult(request)
         }
 
         val text = body.string()
@@ -275,7 +271,9 @@ object Model {
         return AvailableVersion.fromVersionFileText(text)
     }
 
-    private fun checkHttpResult(result: Response): ResponseBody {
+    private fun checkHttpResult(request: Request): ResponseBody {
+		val result = httpClient.newCall(request).execute()
+
         if (!result.isSuccessful) {
             throw IOException("http error " + result.code())
         }
