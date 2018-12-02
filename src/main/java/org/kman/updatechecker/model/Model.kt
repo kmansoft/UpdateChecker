@@ -175,18 +175,25 @@ object Model {
 				removeOldRetainedFile()
 
 				var retainFile = false
-				val request = Request.Builder().url(uri.toString()).get().build()
+				val connection = prepareConnection(uri)
 				try {
-					BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
-						val body = checkHttpResult(request)
-						val inputStream = body.byteStream()
-						val total = body.contentLength().toInt()
+					executeConnection(connection)
 
-						retainFile = saveHttpToFile(it, inputStream, total)
+					val inputStream = connection.inputStream
+					try {
+						val total = connection.contentLength
+
+						BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
+							retainFile = saveHttpToFile(it, inputStream, total)
+						}
+					} finally {
+						closeStream(inputStream)
 					}
 				} catch (x: Exception) {
 					channel.close(x)
 				} finally {
+					closeConnection(connection)
+
 					channel.close()
 
 					if (retainFile) {
