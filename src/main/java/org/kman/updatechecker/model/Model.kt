@@ -83,11 +83,11 @@ object Model {
 		when (updateChannel) {
 			PrefsKeys.UPDATE_CHANNEL_STABLE ->
 				// Stable
-				return getAvailableVersionUrlImpl(context, VERSION_URL_STABLE)
+				return getAvailableVersionImpl(context, VERSION_URL_STABLE)
 			PrefsKeys.UPDATE_CHANNEL_BOTH -> {
 				// Both
-				val versionBeta = getAvailableVersionUrlImpl(context, VERSION_URL_BETA)
-				val versionStable = getAvailableVersionUrlImpl(context, VERSION_URL_STABLE)
+				val versionBeta = getAvailableVersionImpl(context, VERSION_URL_BETA)
+				val versionStable = getAvailableVersionImpl(context, VERSION_URL_STABLE)
 
 				if (versionBeta.isNewerThan(versionStable.ver) || versionStable == AvailableVersion.NONE) {
 					return versionBeta
@@ -96,35 +96,42 @@ object Model {
 			}
 			else ->
 				// Beta is default
-				return getAvailableVersionUrlImpl(context, VERSION_URL_BETA)
+				return getAvailableVersionImpl(context, VERSION_URL_BETA)
 		}
 	}
 
 	@Suppress("UNUSED_PARAMETER")
 	fun getChangeLog(context: Context, version: AvailableVersion): String {
-		val body = withTiming("Get changes") {
-			val uri = version.buildChangeLogUri(DOWNLOAD_BASE)
-			val request = Request.Builder().url(uri.toString()).get().build()
-
-			checkHttpResult(request)
-		}
-
-		val text = body.string()
-		if (text.isNullOrEmpty()) {
-			return ""
-		}
-
-		val sb = StringBuilder()
-		for (line in text.lineSequence()) {
-			if (line.startsWith("Version ")) {
-				if (sb.isNotEmpty()) {
-					break
-				}
-				continue
+		val uri = version.buildChangeLogUri(DOWNLOAD_BASE)
+		val connection = prepareConnection(uri)
+		try {
+			val inputStream = withTiming("Get changes") {
+				executeConnection(connection)
+				connection.inputStream
 			}
-			sb.append(line).append("\n")
+			try {
+				val text = readStreamAsText(inputStream)
+				if (text.isEmpty()) {
+					return ""
+				}
+
+				val sb = StringBuilder()
+				for (line in text.lineSequence()) {
+					if (line.startsWith("Version ")) {
+						if (sb.isNotEmpty()) {
+							break
+						}
+						continue
+					}
+					sb.append(line).append("\n")
+				}
+				return sb.toString().trim()
+			} finally {
+				closeStream(inputStream)
+			}
+		} finally {
+			closeConnection(connection)
 		}
-		return sb.toString().trim()
 	}
 
 	class ApkDownloadTask(private val context: Context, private val ver: AvailableVersion) {
@@ -171,7 +178,11 @@ object Model {
 				val request = Request.Builder().url(uri.toString()).get().build()
 				try {
 					BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
-						retainFile = saveHttpToFile(it, request)
+						val body = checkHttpResult(request)
+						val inputStream = body.byteStream()
+						val total = body.contentLength().toInt()
+
+						retainFile = saveHttpToFile(it, inputStream, total)
 					}
 				} catch (x: Exception) {
 					channel.close(x)
@@ -216,12 +227,10 @@ object Model {
 					.apply()
 		}
 
-		internal suspend fun saveHttpToFile(fileStream: OutputStream, request: Request): Boolean {
-			val body = checkHttpResult(request)
+		internal suspend fun saveHttpToFile(fileStream: OutputStream, inputStream: InputStream, total: Int): Boolean {
 
-			body.byteStream().use {
+			inputStream.use {
 				var progress = 0
-				val total = body.contentLength().toInt()
 				var curPercent = 0
 
 				channel.send(Progress(progress, total))
@@ -267,10 +276,14 @@ object Model {
 	}
 
 	@Suppress("UNUSED_PARAMETER")
-	private fun getAvailableVersionUrlImpl(context: Context, uri: Uri): AvailableVersion {
+	private fun getAvailableVersionImpl(context: Context, uri: Uri): AvailableVersion {
 		val connection = prepareConnection(uri)
 		try {
-			val inputStream = withTiming("Get version") { executeConnection(connection) }
+			val inputStream = withTiming("Get version") {
+				executeConnection(connection)
+				connection.inputStream
+			}
+
 			try {
 				val text = readStreamAsText(inputStream)
 				if (text.isEmpty()) {
@@ -297,13 +310,11 @@ object Model {
 		}
 	}
 
-	private fun executeConnection(connection: HttpURLConnection): InputStream {
+	private fun executeConnection(connection: HttpURLConnection) {
 		val status = connection.getResponseCode()
 		if (status != 200) {
 			throw IOException("http error $status")
 		}
-
-		return connection.inputStream
 	}
 
 	private fun readStreamAsText(inputStream: InputStream): String {
