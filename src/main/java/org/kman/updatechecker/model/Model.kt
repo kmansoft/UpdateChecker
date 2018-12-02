@@ -18,37 +18,39 @@ import okhttp3.Request
 import okhttp3.ResponseBody
 import org.kman.updatechecker.util.MyLog
 import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
 
 object Model {
-    val TAG = "Model"
+	val TAG = "Model"
 
-    val AQUA_MAIL_PACKAGE = "org.kman.AquaMail"
+	val AQUA_MAIL_PACKAGE = "org.kman.AquaMail"
 
-    val VERSION_BASE = Uri.parse("https://www.aqua-mail.com/version")
-    val VERSION_URL_STABLE = VERSION_BASE.buildUpon().appendPath("xversion-AquaMail-market.txt").build()
-    val VERSION_URL_BETA = VERSION_BASE.buildUpon().appendPath("xversion-AquaMail-market-beta.txt").build()
+	val VERSION_BASE = Uri.parse("https://www.aqua-mail.com/version")
+	val VERSION_URL_STABLE = VERSION_BASE.buildUpon().appendPath("xversion-AquaMail-market.txt").build()
+	val VERSION_URL_BETA = VERSION_BASE.buildUpon().appendPath("xversion-AquaMail-market-beta.txt").build()
 
-    val DOWNLOAD_BASE = Uri.parse("https://www.aqua-mail.com/download")
+	val DOWNLOAD_BASE = Uri.parse("https://www.aqua-mail.com/download")
 
 	val PACKAGE_SCHEME = "package"
 	val PACKAGE_PREFIX = PACKAGE_SCHEME + ":"
 
-    private val BUFFER_SIZE = 64 * 1024
+	private val BUFFER_SIZE = 64 * 1024
 
-    private val httpClient = OkHttpClient()
+	private val httpClient = OkHttpClient()
 
-    fun getInstalledVersion(context: Context): BasicVersion {
-        try {
-            val pm = context.packageManager
-            val pi = pm.getPackageInfo(AQUA_MAIL_PACKAGE, 0)
-            return BasicVersion.fromText(pi.versionName)
-        } catch (x: PackageManager.NameNotFoundException) {
-            // Not installed
-            return BasicVersion.NONE
-        }
-    }
+	fun getInstalledVersion(context: Context): BasicVersion {
+		try {
+			val pm = context.packageManager
+			val pi = pm.getPackageInfo(AQUA_MAIL_PACKAGE, 0)
+			return BasicVersion.fromText(pi.versionName)
+		} catch (x: PackageManager.NameNotFoundException) {
+			// Not installed
+			return BasicVersion.NONE
+		}
+	}
 
-	fun registerUpdateMonitorReceiver(context: Context, block: () -> kotlin.Unit) : BroadcastReceiver {
+	fun registerUpdateMonitorReceiver(context: Context, block: () -> kotlin.Unit): BroadcastReceiver {
 		val receiver = object : BroadcastReceiver() {
 			override fun onReceive(context: Context?, intent: Intent?) {
 				if (intent != null) {
@@ -74,221 +76,276 @@ object Model {
 		return receiver
 	}
 
-    fun getAvailableVersion(context: Context): AvailableVersion {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        val updateChannel = prefs.getInt(PrefsKeys.UPDATE_CHANNEL, PrefsKeys.UPDATE_CHANNEL_DEFAULT)
+	fun getAvailableVersion(context: Context): AvailableVersion {
+		val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+		val updateChannel = prefs.getInt(PrefsKeys.UPDATE_CHANNEL, PrefsKeys.UPDATE_CHANNEL_DEFAULT)
 
-        when (updateChannel) {
-            PrefsKeys.UPDATE_CHANNEL_STABLE ->
-                // Stable
-                return getAvailableVersionImpl(context, VERSION_URL_STABLE)
-            PrefsKeys.UPDATE_CHANNEL_BOTH -> {
-                // Both
-                val versionBeta = getAvailableVersionImpl(context, VERSION_URL_BETA)
-                val versionStable = getAvailableVersionImpl(context, VERSION_URL_STABLE)
+		when (updateChannel) {
+			PrefsKeys.UPDATE_CHANNEL_STABLE ->
+				// Stable
+				return getAvailableVersionUrlImpl(context, VERSION_URL_STABLE)
+			PrefsKeys.UPDATE_CHANNEL_BOTH -> {
+				// Both
+				val versionBeta = getAvailableVersionUrlImpl(context, VERSION_URL_BETA)
+				val versionStable = getAvailableVersionUrlImpl(context, VERSION_URL_STABLE)
 
-                if (versionBeta.isNewerThan(versionStable.ver) || versionStable == AvailableVersion.NONE) {
-                    return versionBeta
-                }
-                return versionStable
-            }
-            else ->
-                // Beta is default
-                return getAvailableVersionImpl(context, VERSION_URL_BETA)
-        }
-    }
+				if (versionBeta.isNewerThan(versionStable.ver) || versionStable == AvailableVersion.NONE) {
+					return versionBeta
+				}
+				return versionStable
+			}
+			else ->
+				// Beta is default
+				return getAvailableVersionUrlImpl(context, VERSION_URL_BETA)
+		}
+	}
 
-    @Suppress("UNUSED_PARAMETER")
-    fun getChangeLog(context: Context, version: AvailableVersion): String {
-        val body = withTiming("Get changes") {
-            val uri = version.buildChangeLogUri(DOWNLOAD_BASE)
-            val request = Request.Builder().url(uri.toString()).get().build()
+	@Suppress("UNUSED_PARAMETER")
+	fun getChangeLog(context: Context, version: AvailableVersion): String {
+		val body = withTiming("Get changes") {
+			val uri = version.buildChangeLogUri(DOWNLOAD_BASE)
+			val request = Request.Builder().url(uri.toString()).get().build()
 
-            checkHttpResult(request)
-        }
+			checkHttpResult(request)
+		}
 
-        val text = body.string()
-        if (text.isNullOrEmpty()) {
-            return ""
-        }
+		val text = body.string()
+		if (text.isNullOrEmpty()) {
+			return ""
+		}
 
-        val sb = StringBuilder()
-        for (line in text.lineSequence()) {
-            if (line.startsWith("Version ")) {
-                if (sb.isNotEmpty()) {
-                    break
-                }
-                continue
-            }
-            sb.append(line).append("\n")
-        }
-        return sb.toString().trim()
-    }
+		val sb = StringBuilder()
+		for (line in text.lineSequence()) {
+			if (line.startsWith("Version ")) {
+				if (sb.isNotEmpty()) {
+					break
+				}
+				continue
+			}
+			sb.append(line).append("\n")
+		}
+		return sb.toString().trim()
+	}
 
-    class ApkDownloadTask(private val context: Context, private val ver: AvailableVersion) {
+	class ApkDownloadTask(private val context: Context, private val ver: AvailableVersion) {
 
-        interface Callback {
-            fun onApkDownloadProgress(progress: Int, total: Int)
-            fun onApkDownloadDone(x: Throwable?)
-        }
+		interface Callback {
+			fun onApkDownloadProgress(progress: Int, total: Int)
+			fun onApkDownloadDone(x: Throwable?)
+		}
 
-        fun cancel() {
-            job.cancel()
-        }
+		fun cancel() {
+			job.cancel()
+		}
 
-        fun getVersion(): AvailableVersion {
-            return ver
-        }
+		fun getVersion(): AvailableVersion {
+			return ver
+		}
 
-        fun getSaveFile(): File {
-            return saveFile
-        }
+		fun getSaveFile(): File {
+			return saveFile
+		}
 
-        fun setCallback(c: Callback) {
-            callback = c
-        }
+		fun setCallback(c: Callback) {
+			callback = c
+		}
 
-        fun clearCallback() {
-            callback = null
-        }
+		fun clearCallback() {
+			callback = null
+		}
 
-        private class Progress(val progress: Int, val total: Int)
+		private class Progress(val progress: Int, val total: Int)
 
-        private val job = SupervisorJob()
-        private val uri = ver.buildDownloadUri(Model.DOWNLOAD_BASE)
-        private val saveFile = File(context.externalCacheDir, uri.lastPathSegment)
-        private val channel = Channel<Progress>(Channel.CONFLATED)
+		private val job = SupervisorJob()
+		private val uri = ver.buildDownloadUri(Model.DOWNLOAD_BASE)
+		private val saveFile = File(context.externalCacheDir, uri.lastPathSegment)
+		private val channel = Channel<Progress>(Channel.CONFLATED)
 
-        private var callback: Callback? = null
+		private var callback: Callback? = null
 
-        init {
-            GlobalScope.launch(job + Dispatchers.IO) {
-                removeOldRetainedFile()
+		init {
+			GlobalScope.launch(job + Dispatchers.IO) {
+				removeOldRetainedFile()
 
-                var retainFile = false
-                val request = Request.Builder().url(uri.toString()).get().build()
-                try {
-                    BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
-                        retainFile = saveHttpToFile(it, request)
-                    }
-                } catch (x: Exception) {
-                    channel.close(x)
-                } finally {
-                    channel.close()
+				var retainFile = false
+				val request = Request.Builder().url(uri.toString()).get().build()
+				try {
+					BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
+						retainFile = saveHttpToFile(it, request)
+					}
+				} catch (x: Exception) {
+					channel.close(x)
+				} finally {
+					channel.close()
 
-                    if (retainFile) {
-                        saveNewRetainedFileName()
-                    } else {
-                        saveFile.delete()
-                    }
-                }
-            }
+					if (retainFile) {
+						saveNewRetainedFileName()
+					} else {
+						saveFile.delete()
+					}
+				}
+			}
 
-            GlobalScope.launch(job + Dispatchers.Main) {
-                try {
-                    for (progress in channel) {
-                        MyLog.i(TAG, "apk download: %d / %d", progress.progress, progress.total)
-                        callback?.onApkDownloadProgress(progress.progress, progress.total)
-                    }
-                    callback?.onApkDownloadDone(null)
-                } catch (x: Throwable) {
-                    MyLog.w(TAG, "apk download: channel exception", x)
-                    callback?.onApkDownloadDone(x)
-                }
-            }
-        }
+			GlobalScope.launch(job + Dispatchers.Main) {
+				try {
+					for (progress in channel) {
+						MyLog.i(TAG, "apk download: %d / %d", progress.progress, progress.total)
+						callback?.onApkDownloadProgress(progress.progress, progress.total)
+					}
+					callback?.onApkDownloadDone(null)
+				} catch (x: Throwable) {
+					MyLog.w(TAG, "apk download: channel exception", x)
+					callback?.onApkDownloadDone(x)
+				}
+			}
+		}
 
-        internal fun removeOldRetainedFile() {
-            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-            val name = prefs.getString(PrefsKeys.SAVED_FILE, null)
-            if (!name.isNullOrEmpty()) {
-                val file = File(name)
-                file.delete()
-            }
-        }
+		internal fun removeOldRetainedFile() {
+			val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+			val name = prefs.getString(PrefsKeys.SAVED_FILE, null)
+			if (!name.isNullOrEmpty()) {
+				val file = File(name)
+				file.delete()
+			}
+		}
 
-        internal fun saveNewRetainedFileName() {
-            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-            prefs.edit()
-                    .putString(PrefsKeys.SAVED_FILE, saveFile.absolutePath)
-                    .apply()
-        }
+		internal fun saveNewRetainedFileName() {
+			val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+			prefs.edit()
+					.putString(PrefsKeys.SAVED_FILE, saveFile.absolutePath)
+					.apply()
+		}
 
-        internal suspend fun saveHttpToFile(fileStream: OutputStream, request: Request): Boolean {
-            val body = checkHttpResult(request)
+		internal suspend fun saveHttpToFile(fileStream: OutputStream, request: Request): Boolean {
+			val body = checkHttpResult(request)
 
-            body.byteStream().use {
-                var progress = 0
-                val total = body.contentLength().toInt()
-                var curPercent = 0
+			body.byteStream().use {
+				var progress = 0
+				val total = body.contentLength().toInt()
+				var curPercent = 0
 
-                channel.send(Progress(progress, total))
+				channel.send(Progress(progress, total))
 
-                val buf = ByteArray(BUFFER_SIZE)
-                while (true) {
-                    if (job.isCancelled) {
-                        return false
-                    }
+				val buf = ByteArray(BUFFER_SIZE)
+				while (true) {
+					if (job.isCancelled) {
+						return false
+					}
 
-                    val r = it.read(buf)
-                    if (r <= 0) {
-                        break
-                    }
+					val r = it.read(buf)
+					if (r <= 0) {
+						break
+					}
 
-                    fileStream.write(buf, 0, r)
+					fileStream.write(buf, 0, r)
 
-                    progress += r
+					progress += r
 
-                    MyLog.i(TAG, "apk download: %d of %d", progress, total)
+					MyLog.i(TAG, "apk download: %d of %d", progress, total)
 
-                    val newPercent = 100 * progress / total
-                    if (curPercent != newPercent) {
-                        curPercent = newPercent
-                        channel.send(Progress(progress, total))
-                    }
-                }
+					val newPercent = 100 * progress / total
+					if (curPercent != newPercent) {
+						curPercent = newPercent
+						channel.send(Progress(progress, total))
+					}
+				}
 
-                MyLog.i(TAG, "apk download: done, %d of %d", progress, total)
-                channel.send(Progress(progress, total))
-                return true
-            }
-        }
-    }
+				MyLog.i(TAG, "apk download: done, %d of %d", progress, total)
+				channel.send(Progress(progress, total))
+				return true
+			}
+		}
+	}
 
-    @Suppress("UNUSED_PARAMETER")
-    private fun getAvailableVersionImpl(context: Context, uri: Uri): AvailableVersion {
-        val body = withTiming("Get version") {
-            val request = Request.Builder().url(uri.toString()).get().build()
-
-            checkHttpResult(request)
-        }
-
-        val text = body.string()
-        if (text.isNullOrEmpty()) {
-            return AvailableVersion.NONE
-        }
-
-        return AvailableVersion.fromVersionFileText(text)
-    }
-
-    private fun checkHttpResult(request: Request): ResponseBody {
+	private fun checkHttpResult(request: Request): ResponseBody {
 		val result = httpClient.newCall(request).execute()
 
-        if (!result.isSuccessful) {
-            throw IOException("http error " + result.code())
-        }
-        return result.body()!!
-    }
+		if (!result.isSuccessful) {
+			throw IOException("http error " + result.code())
+		}
+		return result.body()!!
+	}
 
-    private inline fun <T : Any> withTiming(msg: String, block: () -> T): T {
-        val ms0 = SystemClock.elapsedRealtime()
+	@Suppress("UNUSED_PARAMETER")
+	private fun getAvailableVersionUrlImpl(context: Context, uri: Uri): AvailableVersion {
+		val connection = prepareConnection(uri)
+		try {
+			val inputStream = withTiming("Get version") { executeConnection(connection) }
+			try {
+				val text = readStreamAsText(inputStream)
+				if (text.isEmpty()) {
+					return AvailableVersion.NONE
+				}
 
-        val r = block()
+				return AvailableVersion.fromVersionFileText(text)
+			} finally {
+				closeStream(inputStream)
+			}
+		} finally {
+			closeConnection(connection)
+		}
+	}
 
-        val ms1 = SystemClock.elapsedRealtime()
+	private fun prepareConnection(uri: Uri): HttpURLConnection {
+		val connection = URL(uri.toString()).openConnection() as HttpURLConnection
 
-        MyLog.i(TAG, "%s: %d ms", msg, ms1 - ms0)
+		return connection.apply {
+			useCaches = false
+			setRequestProperty("Cache-Control", "no-cache")
+			connectTimeout = 15 * 1000
+			readTimeout = 15 * 1000
+		}
+	}
 
-        return r
-    }
+	private fun executeConnection(connection: HttpURLConnection): InputStream {
+		val status = connection.getResponseCode()
+		if (status != 200) {
+			throw IOException("http error $status")
+		}
+
+		return connection.inputStream
+	}
+
+	private fun readStreamAsText(inputStream: InputStream): String {
+		val byteStream = ByteArrayOutputStream()
+		val bytes = ByteArray(BUFFER_SIZE)
+
+		while (true) {
+			val r = inputStream.read(bytes)
+			if (r <= 0) {
+				break
+			}
+			byteStream.write(bytes, 0, r)
+		}
+
+		return byteStream.toString()
+	}
+
+	private fun closeStream(stream: InputStream) {
+		try {
+			stream.close()
+		} catch (x: Exception) {
+			MyLog.w(TAG, "Error closing stream, ignoring", x)
+		}
+	}
+
+	private fun closeConnection(connection: HttpURLConnection) {
+		try {
+			connection.disconnect()
+		} catch (x: Exception) {
+			MyLog.w(TAG, "Error closing connection, ignoring", x)
+		}
+	}
+
+	private inline fun <T : Any> withTiming(msg: String, block: () -> T): T {
+		val ms0 = SystemClock.elapsedRealtime()
+
+		val r = block()
+
+		val ms1 = SystemClock.elapsedRealtime()
+
+		MyLog.i(TAG, "%s: %d ms", msg, ms1 - ms0)
+
+		return r
+	}
 }
