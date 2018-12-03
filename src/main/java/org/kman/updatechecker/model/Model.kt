@@ -18,8 +18,6 @@ import okhttp3.Request
 import okhttp3.ResponseBody
 import org.kman.updatechecker.util.MyLog
 import java.io.*
-import java.net.HttpURLConnection
-import java.net.URL
 
 object Model {
 	val TAG = "Model"
@@ -50,7 +48,7 @@ object Model {
 		}
 	}
 
-	fun registerUpdateMonitorReceiver(context: Context, block: () -> kotlin.Unit): BroadcastReceiver {
+	fun registerUpdateMonitorReceiver(context: Context, block: () -> kotlin.Unit) : BroadcastReceiver {
 		val receiver = object : BroadcastReceiver() {
 			override fun onReceive(context: Context?, intent: Intent?) {
 				if (intent != null) {
@@ -102,36 +100,29 @@ object Model {
 
 	@Suppress("UNUSED_PARAMETER")
 	fun getChangeLog(context: Context, version: AvailableVersion): String {
-		val uri = version.buildChangeLogUri(DOWNLOAD_BASE)
-		val connection = prepareConnection(uri)
-		try {
-			val inputStream = withTiming("Get changes") {
-				executeConnection(connection)
-				connection.inputStream
-			}
-			try {
-				val text = readStreamAsText(inputStream)
-				if (text.isEmpty()) {
-					return ""
-				}
+		val body = withTiming("Get changes") {
+			val uri = version.buildChangeLogUri(DOWNLOAD_BASE)
+			val request = Request.Builder().url(uri.toString()).get().build()
 
-				val sb = StringBuilder()
-				for (line in text.lineSequence()) {
-					if (line.startsWith("Version ")) {
-						if (sb.isNotEmpty()) {
-							break
-						}
-						continue
-					}
-					sb.append(line).append("\n")
-				}
-				return sb.toString().trim()
-			} finally {
-				closeStream(inputStream)
-			}
-		} finally {
-			closeConnection(connection)
+			checkHttpResult(request)
 		}
+
+		val text = body.string()
+		if (text.isNullOrEmpty()) {
+			return ""
+		}
+
+		val sb = StringBuilder()
+		for (line in text.lineSequence()) {
+			if (line.startsWith("Version ")) {
+				if (sb.isNotEmpty()) {
+					break
+				}
+				continue
+			}
+			sb.append(line).append("\n")
+		}
+		return sb.toString().trim()
 	}
 
 	class ApkDownloadTask(private val context: Context, private val ver: AvailableVersion) {
@@ -175,25 +166,14 @@ object Model {
 				removeOldRetainedFile()
 
 				var retainFile = false
-				val connection = prepareConnection(uri)
+				val request = Request.Builder().url(uri.toString()).get().build()
 				try {
-					executeConnection(connection)
-
-					val inputStream = connection.inputStream
-					try {
-						val total = connection.contentLength
-
-						BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
-							retainFile = saveHttpToFile(it, inputStream, total)
-						}
-					} finally {
-						closeStream(inputStream)
+					BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
+						retainFile = saveHttpToFile(it, request)
 					}
 				} catch (x: Exception) {
 					channel.close(x)
 				} finally {
-					closeConnection(connection)
-
 					channel.close()
 
 					if (retainFile) {
@@ -234,10 +214,12 @@ object Model {
 					.apply()
 		}
 
-		internal suspend fun saveHttpToFile(fileStream: OutputStream, inputStream: InputStream, total: Int): Boolean {
+		internal suspend fun saveHttpToFile(fileStream: OutputStream, request: Request): Boolean {
+			val body = checkHttpResult(request)
 
-			inputStream.use {
+			body.byteStream().use {
 				var progress = 0
+				val total = body.contentLength().toInt()
 				var curPercent = 0
 
 				channel.send(Progress(progress, total))
@@ -273,6 +255,22 @@ object Model {
 		}
 	}
 
+	@Suppress("UNUSED_PARAMETER")
+	private fun getAvailableVersionImpl(context: Context, uri: Uri): AvailableVersion {
+		val body = withTiming("Get version") {
+			val request = Request.Builder().url(uri.toString()).get().build()
+
+			checkHttpResult(request)
+		}
+
+		val text = body.string()
+		if (text.isNullOrEmpty()) {
+			return AvailableVersion.NONE
+		}
+
+		return AvailableVersion.fromVersionFileText(text)
+	}
+
 	private fun checkHttpResult(request: Request): ResponseBody {
 		val result = httpClient.newCall(request).execute()
 
@@ -280,79 +278,6 @@ object Model {
 			throw IOException("http error " + result.code())
 		}
 		return result.body()!!
-	}
-
-	@Suppress("UNUSED_PARAMETER")
-	private fun getAvailableVersionImpl(context: Context, uri: Uri): AvailableVersion {
-		val connection = prepareConnection(uri)
-		try {
-			val inputStream = withTiming("Get version") {
-				executeConnection(connection)
-				connection.inputStream
-			}
-
-			try {
-				val text = readStreamAsText(inputStream)
-				if (text.isEmpty()) {
-					return AvailableVersion.NONE
-				}
-
-				return AvailableVersion.fromVersionFileText(text)
-			} finally {
-				closeStream(inputStream)
-			}
-		} finally {
-			closeConnection(connection)
-		}
-	}
-
-	private fun prepareConnection(uri: Uri): HttpURLConnection {
-		val connection = URL(uri.toString()).openConnection() as HttpURLConnection
-
-		return connection.apply {
-			useCaches = false
-			setRequestProperty("Cache-Control", "no-cache")
-			connectTimeout = 15 * 1000
-			readTimeout = 15 * 1000
-		}
-	}
-
-	private fun executeConnection(connection: HttpURLConnection) {
-		val status = connection.getResponseCode()
-		if (status != 200) {
-			throw IOException("http error $status")
-		}
-	}
-
-	private fun readStreamAsText(inputStream: InputStream): String {
-		val byteStream = ByteArrayOutputStream()
-		val bytes = ByteArray(BUFFER_SIZE)
-
-		while (true) {
-			val r = inputStream.read(bytes)
-			if (r <= 0) {
-				break
-			}
-			byteStream.write(bytes, 0, r)
-		}
-
-		return byteStream.toString()
-	}
-
-	private fun closeStream(stream: InputStream) {
-		try {
-			stream.close()
-		} catch (x: Exception) {
-			MyLog.w(TAG, "Error closing stream, ignoring", x)
-		}
-	}
-
-	private fun closeConnection(connection: HttpURLConnection) {
-		try {
-			connection.disconnect()
-		} catch (x: Exception) {
-			MyLog.w(TAG, "Error closing connection, ignoring", x)
-		}
 	}
 
 	private inline fun <T : Any> withTiming(msg: String, block: () -> T): T {
