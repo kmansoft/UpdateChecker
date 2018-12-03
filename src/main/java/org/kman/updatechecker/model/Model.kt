@@ -13,6 +13,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
@@ -38,13 +39,13 @@ object Model {
 	private val httpClient = OkHttpClient()
 
 	fun getInstalledVersion(context: Context): BasicVersion {
-		try {
+		return try {
 			val pm = context.packageManager
 			val pi = pm.getPackageInfo(AQUA_MAIL_PACKAGE, 0)
-			return BasicVersion.fromText(pi.versionName)
+			BasicVersion.fromText(pi.versionName)
 		} catch (x: PackageManager.NameNotFoundException) {
 			// Not installed
-			return BasicVersion.NONE
+			BasicVersion.NONE
 		}
 	}
 
@@ -102,9 +103,7 @@ object Model {
 	fun getChangeLog(context: Context, version: AvailableVersion): String {
 		val body = withTiming("Get changes") {
 			val uri = version.buildChangeLogUri(DOWNLOAD_BASE)
-			val request = Request.Builder().url(uri.toString()).get().build()
-
-			checkHttpResult(request)
+			executeHttpRequest(uri)
 		}
 
 		val text = body.string()
@@ -166,10 +165,10 @@ object Model {
 				removeOldRetainedFile()
 
 				var retainFile = false
-				val request = Request.Builder().url(uri.toString()).get().build()
+				val body = executeHttpRequest(uri)
 				try {
 					BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
-						retainFile = saveHttpToFile(it, request)
+						retainFile = saveHttpToFile(it, body)
 					}
 				} catch (x: Exception) {
 					channel.close(x)
@@ -198,7 +197,7 @@ object Model {
 			}
 		}
 
-		internal fun removeOldRetainedFile() {
+		private fun removeOldRetainedFile() {
 			val prefs = PreferenceManager.getDefaultSharedPreferences(context)
 			val name = prefs.getString(PrefsKeys.SAVED_FILE, null)
 			if (!name.isNullOrEmpty()) {
@@ -207,20 +206,23 @@ object Model {
 			}
 		}
 
-		internal fun saveNewRetainedFileName() {
+		private fun saveNewRetainedFileName() {
 			val prefs = PreferenceManager.getDefaultSharedPreferences(context)
 			prefs.edit()
 					.putString(PrefsKeys.SAVED_FILE, saveFile.absolutePath)
 					.apply()
 		}
 
-		internal suspend fun saveHttpToFile(fileStream: OutputStream, request: Request): Boolean {
-			val body = checkHttpResult(request)
+		private suspend fun saveHttpToFile(fileStream: OutputStream, body: ResponseBody): Boolean {
 
 			body.byteStream().use {
 				var progress = 0
 				val total = body.contentLength().toInt()
 				var curPercent = 0
+
+				if (job.isCancelled) {
+					return false
+				}
 
 				channel.send(Progress(progress, total))
 
@@ -258,9 +260,7 @@ object Model {
 	@Suppress("UNUSED_PARAMETER")
 	private fun getAvailableVersionImpl(context: Context, uri: Uri): AvailableVersion {
 		val body = withTiming("Get version") {
-			val request = Request.Builder().url(uri.toString()).get().build()
-
-			checkHttpResult(request)
+			executeHttpRequest(uri)
 		}
 
 		val text = body.string()
@@ -271,7 +271,8 @@ object Model {
 		return AvailableVersion.fromVersionFileText(text)
 	}
 
-	private fun checkHttpResult(request: Request): ResponseBody {
+	private fun executeHttpRequest(uri: Uri): ResponseBody {
+		val request = Request.Builder().url(uri.toString()).get().cacheControl(CacheControl.FORCE_NETWORK).build()
 		val result = httpClient.newCall(request).execute()
 
 		if (!result.isSuccessful) {
