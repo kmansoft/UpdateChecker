@@ -275,7 +275,12 @@ object Model {
 	}
 
 	private fun executeHttpRequest(uri: Uri): ResponseBody {
-		val request = Request.Builder().url(uri.toString()).get().cacheControl(CacheControl.FORCE_NETWORK).build()
+		val request = Request.Builder().apply {
+			url(uri.toString())
+			get()
+			cacheControl(CacheControl.FORCE_NETWORK)
+		}.build()
+
 		val result = httpClient.newCall(request).execute()
 
 		if (!result.isSuccessful) {
