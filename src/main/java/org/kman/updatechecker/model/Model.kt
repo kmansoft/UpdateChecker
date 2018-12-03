@@ -18,7 +18,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
 import org.kman.updatechecker.util.MyLog
-import java.io.*
+import java.io.BufferedOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 object Model {
 	val TAG = "Model"
@@ -49,7 +52,7 @@ object Model {
 		}
 	}
 
-	fun registerUpdateMonitorReceiver(context: Context, block: () -> kotlin.Unit) : BroadcastReceiver {
+	fun registerUpdateMonitorReceiver(context: Context, block: () -> kotlin.Unit): BroadcastReceiver {
 		val receiver = object : BroadcastReceiver() {
 			override fun onReceive(context: Context?, intent: Intent?) {
 				if (intent != null) {
@@ -167,9 +170,7 @@ object Model {
 				var retainFile = false
 				val body = executeHttpRequest(uri)
 				try {
-					BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use {
-						retainFile = saveHttpToFile(it, body)
-					}
+					retainFile = saveHttpToFile(body)
 				} catch (x: Exception) {
 					channel.close(x)
 				} finally {
@@ -213,46 +214,48 @@ object Model {
 					.apply()
 		}
 
-		private suspend fun saveHttpToFile(fileStream: OutputStream, body: ResponseBody): Boolean {
+		private suspend fun saveHttpToFile(body: ResponseBody): Boolean {
+			body.byteStream().use { inStream ->
+				BufferedOutputStream(FileOutputStream(saveFile), BUFFER_SIZE).use { outStream ->
 
-			body.byteStream().use {
-				var progress = 0
-				val total = body.contentLength().toInt()
-				var curPercent = 0
+					val total = body.contentLength().toInt()
+					var progress = 0
+					var percent = 0
 
-				if (job.isCancelled) {
-					return false
-				}
-
-				channel.send(Progress(progress, total))
-
-				val buf = ByteArray(BUFFER_SIZE)
-				while (true) {
 					if (job.isCancelled) {
 						return false
 					}
 
-					val r = it.read(buf)
-					if (r <= 0) {
-						break
+					channel.send(Progress(progress, total))
+
+					val buf = ByteArray(BUFFER_SIZE)
+					while (true) {
+						if (job.isCancelled) {
+							return false
+						}
+
+						val r = inStream.read(buf)
+						if (r <= 0) {
+							break
+						}
+
+						outStream.write(buf, 0, r)
+
+						progress += r
+
+						MyLog.i(TAG, "apk download: %d of %d", progress, total)
+
+						val newPercent = 100 * progress / total
+						if (percent != newPercent) {
+							percent = newPercent
+							channel.send(Progress(progress, total))
+						}
 					}
 
-					fileStream.write(buf, 0, r)
-
-					progress += r
-
-					MyLog.i(TAG, "apk download: %d of %d", progress, total)
-
-					val newPercent = 100 * progress / total
-					if (curPercent != newPercent) {
-						curPercent = newPercent
-						channel.send(Progress(progress, total))
-					}
+					MyLog.i(TAG, "apk download: done, %d of %d", progress, total)
+					channel.send(Progress(progress, total))
+					return true
 				}
-
-				MyLog.i(TAG, "apk download: done, %d of %d", progress, total)
-				channel.send(Progress(progress, total))
-				return true
 			}
 		}
 	}
