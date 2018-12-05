@@ -199,7 +199,7 @@ class MainActivity : Activity() {
 			}
 		} catch (x: Throwable) {
 			MyLog.w(TAG, "Catch from get installed", x)
-			textInstalled.text = x.toString()
+			textInstalled.text = x.message
 			return
 		}
 
@@ -219,7 +219,7 @@ class MainActivity : Activity() {
 			}
 		} catch (x: Throwable) {
 			MyLog.w(TAG, "Catch from get available", x)
-			textAvailable.text = x.toString()
+			textAvailable.text = x.message
 			return
 		}
 

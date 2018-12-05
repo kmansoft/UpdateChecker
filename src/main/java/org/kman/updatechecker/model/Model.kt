@@ -37,6 +37,8 @@ object Model {
 	val PACKAGE_SCHEME = "package"
 	val PACKAGE_PREFIX = PACKAGE_SCHEME + ":"
 
+	class HttpException(code: Int) : IOException("HTTP error ${code}")
+
 	private val BUFFER_SIZE = 64 * 1024
 
 	private val httpClient = OkHttpClient()
@@ -284,7 +286,7 @@ object Model {
 		val result = httpClient.newCall(request).execute()
 
 		if (!result.isSuccessful) {
-			throw IOException("http error " + result.code())
+			throw HttpException(result.code())
 		}
 		return result.body()!!
 	}
