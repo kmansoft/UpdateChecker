@@ -1,0 +1,45 @@
+android {
+	signingConfigs {
+		  release {
+			storeFile file("UpdateChecker.keystore")
+			storePassword "avM18XxCfUMu_mnTlr"
+			keyAlias "UpdateChecker"
+			keyPassword "wAjaZ5K5rLq_H6GVO8"
+		 }
+	 }
+
+	buildTypes {
+		release {
+			signingConfig signingConfigs.release
+		}
+	}
+}
+
+if ("true".equalsIgnoreCase(project.findProperty("IS_RELEASE_BUILD"))) {
+	android.applicationVariants.all { variant ->
+		if (variant.buildType.name == "release") {
+			variant.outputs.each { output ->
+				def uploadUser = project.findProperty("UPLOAD_USER")
+				def uploadHost = project.findProperty("UPLOAD_HOST")
+				def uploadRoot = project.findProperty("UPLOAD_ROOT")
+
+				if (uploadUser && uploadHost && uploadRoot) {
+					def versionName = variant.getVersionName()
+					def targetName = "UpdateChecker-${versionName}.apk"
+
+					task doUpload(type: Exec) {
+						dependsOn(variant.assemble)
+						commandLine "scp",
+							output.outputFile,
+							"${uploadUser}@${uploadHost}:${uploadRoot}/${targetName}"
+					} doFirst {
+						println "*** Uploading ${targetName}..."
+					} doLast {
+						println "*** Uploading ${targetName} done"
+						println "*** Download link: https://${uploadHost}/download/${targetName}"
+					}
+				}
+			}
+		}
+	}
+}

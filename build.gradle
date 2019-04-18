@@ -43,7 +43,7 @@ apply plugin: 'kotlin-android'
 
 ext {
 	VERSION_NAME = "0.1"
-	VERSION_CODE = 8
+	VERSION_CODE = 9
 }
 
 android {
@@ -59,6 +59,11 @@ android {
 		versionCode VERSION_CODE
 
 		testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+	}
+
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_1_8
+		targetCompatibility JavaVersion.VERSION_1_8
 	}
 
 	buildTypes {
@@ -83,5 +88,6 @@ dependencies {
 
 def RELEASE_BUILD_FILE = new File(project.projectDir, "build.release.gradle")
 if (RELEASE_BUILD_FILE.exists()) {
+	println "Including release build file ${RELEASE_BUILD_FILE}"
 	apply from: RELEASE_BUILD_FILE
 }
