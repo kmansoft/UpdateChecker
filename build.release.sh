@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#gradle clean
+gradle clean
 gradle \
 	-P IS_RELEASE_BUILD=true \
 	-P UPLOAD_USER="kman" \
